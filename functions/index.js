@@ -6,34 +6,42 @@ admin.initializeApp();
 const express = require('express');
 const app = express();
 
-// Create and Deploy Your First Cloud Functions
-// https://firebase.google.com/docs/functions/write-firebase-functions
-
-exports.helloWorld = functions.https.onRequest((request, response) => {
-  response.send('Hello World!');
-});
-
-exports.getPosts = functions.https.onRequest((req, res) => {
+app.get('/posts', (req, res) => {
   admin
     .firestore()
     .collection('posts')
+    .orderBy('createdAt', 'desc')
     .get()
     .then((data) => {
       let posts = [];
       data.forEach((doc) => {
-        posts.push(doc.data());
+        posts.push({
+          postId: doc.id,
+          body: doc.data().body,
+          userHandle: doc.data().userHandle,
+          createdAt: doc.data().createdAt,
+          commentCount: doc.data().commentCount,
+          likeCount: doc.data().likeCount
+        });
       });
       return res.json(posts);
     })
-    .catch((err) => console.error(err));
+    .catch((err) => {
+      console.error(err);
+      res.status(500).json({ error: err.code });
+    });
 });
 
-exports.createPost = functions.https.onRequest((req, res) => {
-    if(req.method !== 'POST'){return res.status(400).json({error: 'Method not allowed'})}
+// Post one post
+app.post('/post', (req, res) => {
+  if (req.body.body.trim() === '') {
+    return res.status(400).json({ body: 'Body must not be empty' });
+  }
+
   const newPost = {
     body: req.body.body,
     userHandle: req.body.userHandle,
-    createdAt: admin.firestore.Timestamp.fromDate(new Date()),
+    createdAt: new Date().toISOString()
   };
 
   admin
@@ -41,11 +49,14 @@ exports.createPost = functions.https.onRequest((req, res) => {
     .collection('posts')
     .add(newPost)
     .then((doc) => {
-        res.json({ message: `document ${doc.id} created successfully` });
-      })
+      res.json({ message: `document ${doc.id} created successfully` });
+      return 
+    })
     .catch((err) => {
-      res.status(500).json({ error: 'Something went wron'g });
+      res.status(500).json({ error: 'something went wrong' });
       console.error(err);
     });
 });
+
+exports.api = functions.region('europe-west1').https.onRequest(app);
 
