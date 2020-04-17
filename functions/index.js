@@ -1,7 +1,7 @@
 require("dotenv").config();
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const serviceAccount = require('../service-accounts/social-app-c4995-firebase-adminsdk-xcmas-3d1913d5a1.json');
+const serviceAccount = require("../service-accounts/social-app-c4995-firebase-adminsdk-xcmas-3d1913d5a1.json");
 const app = require("express")();
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -9,7 +9,7 @@ admin.initializeApp({
 });
 
 var config = {
-  apiKey: process.env.API_KEY,
+  apiKey: 'AIzaSyC4wVCgle4ykHKhYQCB9im-S6KsCRSycm8',
   authDomain: process.env.AUTH_DOMAIN,
   databaseURL: process.env.DATABASE_URL,
   projectId: process.env.PROJECT_ID,
@@ -101,10 +101,11 @@ app.post("/signup", (req, res) => {
   }
 
   if (isEmpty(newUser.password)) errors.password = "Must not be empty";
-  if(newUser.password !== newUser.confirmPassword) errors.confirmPassword = 'Passwords must match';
-  if(isEmpty(newUser.handle)) errors.handle = "Must not be empty"
+  if (newUser.password !== newUser.confirmPassword)
+    errors.confirmPassword = "Passwords must match";
+  if (isEmpty(newUser.handle)) errors.handle = "Must not be empty";
 
-  if(Object.keys(errors).length > 0) return res.status(400).json(errors);
+  if (Object.keys(errors).length > 0) return res.status(400).json(errors);
 
   // TODO: validate data
   let token, userId;
@@ -143,6 +144,38 @@ app.post("/signup", (req, res) => {
       } else {
         return res.status(500).json({ error: err.code });
       }
+    });
+});
+
+app.post("/login", (req, res) => {
+  const user = {
+    email: req.body.email,
+    password: req.body.password,
+  };
+
+  let errors = {};
+
+  if (isEmpty(user.email)) errors.email = "Must not be empty";
+  if (isEmpty(user.password)) errors.password = "Must not be empty";
+
+  if (Object.keys(errors).length > 0) return res.status(400).json(errors);
+
+  firebase
+    .auth()
+    .signInWithEmailAndPassword(user.email, user.password)
+    .then((data) => {
+      return data.user.getIdToken();
+    })
+    .then((token) => {
+      return res.json({ token });
+    })
+    .catch((err) => {
+      console.error(err);
+      if (err.code === "auth/wrong-password") {
+        return res
+          .status(403)
+          .json({ general: "Wrong credentials, please try again" });
+      } else return res.status(500).json({ error: err.code });
     });
 });
 
