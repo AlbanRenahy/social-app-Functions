@@ -1,7 +1,7 @@
 require("dotenv").config();
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const serviceAccount = require(process.env.JSON_FILE_PATH);
+const serviceAccount = require('../service-accounts/social-app-c4995-firebase-adminsdk-xcmas-3d1913d5a1.json');
 const app = require("express")();
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -50,7 +50,7 @@ app.get("/posts", (req, res) => {
 
 // Create one post
 app.post("/post", (req, res) => {
-  if (req.body.body.trim() === '') {
+  if (req.body.body.trim() === "") {
     return res.status(400).json({ body: "Body must not be empty" });
   }
 
@@ -70,7 +70,18 @@ app.post("/post", (req, res) => {
       res.status(500).json({ error: "something went wrong" });
       console.error(err);
     });
-  });
+});
+
+const isEmail = (email) => {
+  const regEx = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  if (email.match(regEx)) return true;
+  else return false;
+};
+
+const isEmpty = (string) => {
+  if (string.trim() === "") return true;
+  else return false;
+};
 
 // Signup route
 app.post("/signup", (req, res) => {
@@ -80,6 +91,20 @@ app.post("/signup", (req, res) => {
     confirmPassword: req.body.confirmPassword,
     handle: req.body.handle,
   };
+
+  let errors = {};
+
+  if (isEmpty(newUser.email)) {
+    errors.email = "Email must not be empty";
+  } else if (!isEmail(newUser.email)) {
+    errors.email = "Must be a valid email address";
+  }
+
+  if (isEmpty(newUser.password)) errors.password = "Must not be empty";
+  if(newUser.password !== newUser.confirmPassword) errors.confirmPassword = 'Passwords must match';
+  if(isEmpty(newUser.handle)) errors.handle = "Must not be empty"
+
+  if(Object.keys(errors).length > 0) return res.status(400).json(errors);
 
   // TODO: validate data
   let token, userId;
