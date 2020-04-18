@@ -190,7 +190,7 @@ exports.unlikePost = (req, res) => {
     })
     .then((data) => {
       if (data.empty) {
-        return res.status(400).json({ error: "Scream not liked" });
+        return res.status(400).json({ error: "post not liked" });
       } else {
         return db
           .doc(`/likes/${data.docs[0].id}`)
@@ -207,5 +207,29 @@ exports.unlikePost = (req, res) => {
     .catch((err) => {
       console.error(err);
       res.status(500).json({ error: err.code });
+    });
+};
+
+// Delete a post
+exports.deletePost = (req, res) => {
+  const document = db.doc(`/posts/${req.params.postId}`);
+  document
+    .get()
+    .then((doc) => {
+      if (!doc.exists) {
+        return res.status(404).json({ error: 'post not found' });
+      }
+      if (doc.data().userHandle !== req.user.handle) {
+        return res.status(403).json({ error: 'Unauthorized' });
+      } else {
+        return document.delete();
+      }
+    })
+    .then(() => {
+      res.json({ message: 'post deleted successfully' });
+    })
+    .catch((err) => {
+      console.error(err);
+      return res.status(500).json({ error: err.code });
     });
 };
