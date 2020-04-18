@@ -1,4 +1,4 @@
-const { db } = require('../utils/admin')
+const { db } = require('../util/admin')
 
 
 exports.getAllPosts = (req, res) => {
